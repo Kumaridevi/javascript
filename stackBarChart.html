@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+  <head>
+  <meta charset="utf-8">
+  <title>StckedBarChart</title>
+  <style>
+
+  body {
+    font: 10px sans-serif;
+    background: pink;
+  }
+
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+  }
+
+  .bar {
+    fill: green;
+  }
+
+  .x.axis path {
+    stroke-width:2;
+  }
+  </style>
+  </head>
+  <body>
+    <h1 style="text-align:center;">Countries Vs (Sugar,Salt)</h1>
+  <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script>
+  // Set the dimensions of the canvas / graph
+    var margin={top:40, bottom:100, left:250, right:90},
+      width=1200-margin.left-margin.right,
+      height=600-margin.top-margin.bottom;
+
+
+  var x = d3.scale.ordinal()
+      .rangeRoundBands([0, width], .1);
+
+  var y = d3.scale.linear()
+      .rangeRound([height, 0]);
+
+  var z = d3.scale.category20c();
+
+  // Define and draw axes
+  var xAxis=d3.svg.axis()
+      .scale(x)
+      .orient("bottom");
+
+    var yAxis=d3.svg.axis()
+      .scale(y)
+      .orient("left");
+   /* Data in strings like it would be if imported from a js */
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    d3.json("js/stackBarChart.JSON",function(error, data) {
+   
+    z.domain(d3.keys(data[0]).filter(function(key) { return key !== "country"; }));
+
+    data.forEach(function(d) {
+      var y0 = 0;
+      d.item = z.domain().map(function(name) { return {name: name, y0: y0, y1: y0 += +d[name]}; });
+      d.total = d.item[d.item.length - 1].y1;
+    });
+
+    data.sort(function(a, b) { return b.total - a.total; });
+
+    x.domain(data.map(function(d) { return d.country; }));
+    y.domain([0, d3.max(data, function(d) { return d.total; })]);
+     // Create groups for each series, rects for each segment 
+    svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+        .append("text")
+         .attr("transform", "translate(" + width + ",0)")
+         .attr("dy","2em")
+         .attr("dx","-5em")
+         .style("font-size","15px")
+         .style("font-weight","bold")
+         .style("color","red")
+         .text("Countries");
+
+   svg.append("g")
+      .attr("class", "axis")
+      .call(yAxis)
+      .append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("dy","1em")
+         .style("text-anchor", "end")
+         .style("font-size","12px")
+         .style("font-weight","bold")
+         .style("color","red")
+         .text("Sugar(100g),Salt(100g)");
+
+    var country = svg.selectAll(".state")
+        .data(data)
+      .enter().append("g")
+        .attr("class", "g")
+        .attr("transform", function(d) { return "translate(" + x(d.country) + ",0)"; });
+
+    country.selectAll("rect")
+        .data(function(d) { return d.item; })
+      .enter().append("rect")
+        .attr("width", x.rangeBand())
+        .attr("y", function(d) { return y(d.y1); })
+        .attr("height", function(d) { return y(d.y0) - y(d.y1); })
+        .style("fill", function(d) { return z(d.name); });
+
+    var legend = svg.selectAll(".legend")
+        .data(z.domain().slice())
+      .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+    
+
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(function(d) { return d; });
+
+   legend.append("rect")
+        .attr("x", width - 18)
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", z);
+
+  });
+  </script>
+  </body>
+  </html>
